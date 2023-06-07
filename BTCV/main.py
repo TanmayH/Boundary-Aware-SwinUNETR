@@ -36,7 +36,6 @@ from torchsummary import summary
 from monai.networks.blocks import Convolution
 from monai.networks.blocks import SimpleASPP
 from collections.abc import Sequence
-from utils.deformConv import DeformConv3d
 from monai.utils import ensure_tuple_rep, look_up_option, optional_import
 from monai.networks.nets.swin_unetr import SwinTransformer
 from kornia.filters import SpatialGradient3d
@@ -78,22 +77,22 @@ parser.add_argument("--in_channels", default=1, type=int, help="number of input 
 parser.add_argument("--out_channels", default=3, type=int, help="number of output channels")
 parser.add_argument("--replace_ll_temp", default=3, type=int, help="to replace the number of channels in last layer to load pt weights")
 parser.add_argument("--use_normal_dataset", action="store_true", help="use monai Dataset class")
-parser.add_argument("--a_min", default=-87.0, type=float, help="a_min in ScaleIntensityRanged")
-parser.add_argument("--a_max", default=199.0, type=float, help="a_max in ScaleIntensityRanged")
+parser.add_argument("--a_min", default=-21.0, type=float, help="a_min in ScaleIntensityRanged")
+parser.add_argument("--a_max", default=189.0, type=float, help="a_max in ScaleIntensityRanged")
 parser.add_argument("--b_min", default=0.0, type=float, help="b_min in ScaleIntensityRanged")
 parser.add_argument("--b_max", default=1.0, type=float, help="b_max in ScaleIntensityRanged")
 parser.add_argument("--space_x", default=1.5, type=float, help="spacing in x direction")
 parser.add_argument("--space_y", default=1.5, type=float, help="spacing in y direction")
 parser.add_argument("--space_z", default=1.5, type=float, help="spacing in z direction")
-parser.add_argument("--roi_x", default=64, type=int, help="roi size in x direction")
-parser.add_argument("--roi_y", default=64, type=int, help="roi size in y direction")
-parser.add_argument("--roi_z", default=64, type=int, help="roi size in z direction")
+parser.add_argument("--roi_x", default=96, type=int, help="roi size in x direction")
+parser.add_argument("--roi_y", default=96, type=int, help="roi size in y direction")
+parser.add_argument("--roi_z", default=96, type=int, help="roi size in z direction")
 parser.add_argument("--dropout_rate", default=0.0, type=float, help="dropout rate")
 parser.add_argument("--dropout_path_rate", default=0.0, type=float, help="drop path rate")
-parser.add_argument("--RandFlipd_prob", default=0.5, type=float, help="RandFlipd aug probability")
-parser.add_argument("--RandRotate90d_prob", default=0.25, type=float, help="RandRotate90d aug probability")
-parser.add_argument("--RandScaleIntensityd_prob", default=0.5, type=float, help="RandScaleIntensityd aug probability")
-# parser.add_argument("--RandShiftIntensityd_prob", default=0.0, type=float, help="RandShiftIntensityd aug probability")
+parser.add_argument("--RandFlipd_prob", default=0.2, type=float, help="RandFlipd aug probability")
+parser.add_argument("--RandRotate90d_prob", default=0.2, type=float, help="RandRotate90d aug probability")
+parser.add_argument("--RandScaleIntensityd_prob", default=0.1, type=float, help="RandScaleIntensityd aug probability")
+parser.add_argument("--RandShiftIntensityd_prob", default=0.1, type=float, help="RandShiftIntensityd aug probability")
 parser.add_argument("--infer_overlap", default=0.5, type=float, help="sliding window inference overlap")
 parser.add_argument("--lrschedule", default="warmup_cosine", type=str, help="type of learning rate scheduler")
 parser.add_argument("--warmup_epochs", default=50, type=int, help="number of warmup epochs")
@@ -612,29 +611,29 @@ def main_worker(gpu, args):
     inf_size = [args.roi_x, args.roi_y, args.roi_z]
     pretrained_dir = args.pretrained_dir
 
-    model = ShapeSwinUNETRV8(
-        img_size=(args.roi_x, args.roi_y, args.roi_z),
-        spatial_dims = args.spatial_dims,
-        in_channels=args.in_channels,
-        out_channels=args.replace_ll_temp, #to load pretrained weights
-        feature_size=args.feature_size,
-        drop_rate=0.0,
-        attn_drop_rate=0.0,
-        dropout_path_rate=args.dropout_path_rate,
-        use_checkpoint=args.use_checkpoint,
-        norm_name="instance"
-    )
-
-    # model = SwinUNETR(
+    # model = ShapeSwinUNETRV8(
     #     img_size=(args.roi_x, args.roi_y, args.roi_z),
+    #     spatial_dims = args.spatial_dims,
     #     in_channels=args.in_channels,
     #     out_channels=args.replace_ll_temp, #to load pretrained weights
     #     feature_size=args.feature_size,
     #     drop_rate=0.0,
     #     attn_drop_rate=0.0,
     #     dropout_path_rate=args.dropout_path_rate,
-    #     use_checkpoint=args.use_checkpoint    
+    #     use_checkpoint=args.use_checkpoint,
+    #     norm_name="instance"
     # )
+
+    model = SwinUNETR(
+        img_size=(args.roi_x, args.roi_y, args.roi_z),
+        in_channels=args.in_channels,
+        out_channels=args.replace_ll_temp, #to load pretrained weights
+        feature_size=args.feature_size,
+        drop_rate=0.0,
+        attn_drop_rate=0.0,
+        dropout_path_rate=args.dropout_path_rate,
+        use_checkpoint=args.use_checkpoint    
+    )
 
     if args.resume_ckpt:
         model_dict = torch.load(os.path.join(pretrained_dir, args.pretrained_model_name))["state_dict"]

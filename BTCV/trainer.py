@@ -112,7 +112,7 @@ def train_epoch(model, loader, optimizer, scaler, epoch, loss_func, edge_loss_fu
         with autocast(enabled=args.amp):
             logits = model(data)
             
-            
+            '''
             attention_logits = model.get_attention_logits()
             logit_list = model.get_intermediate_attention_logits()
 
@@ -143,12 +143,11 @@ def train_epoch(model, loader, optimizer, scaler, epoch, loss_func, edge_loss_fu
                 scaled_attention_target = torch.nn.functional.interpolate(attention_target, scaled_attention_logit.shape[2:])
                 boundary_loss += scale_weight * edge_loss_func(scaled_attention_logit, scaled_attention_target)
                 scale_weight /=2
-            
-
+            '''
             seg_loss = loss_func(logits, target)
-            # loss = seg_loss
-            loss = seg_loss +  boundary_loss
-            
+            loss = seg_loss
+            # loss = seg_loss +  boundary_loss
+
         if args.amp:
             scaler.scale(loss).backward()
             scaler.step(optimizer)
